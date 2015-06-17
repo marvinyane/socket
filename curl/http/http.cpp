@@ -5,15 +5,18 @@
 
 #include "http.h"
 
-HTTPRequest::HTTPRequest(std::string uri)
+HTTPRequest::HTTPRequest(std::string uri, std::tr1::function<void(HTTPRequest*)> callback)
 {
     m_easyHandle = curl_easy_init();
 
     curl_easy_setopt(m_easyHandle, CURLOPT_URL, uri.c_str());
+    curl_easy_setopt(m_easyHandle, CURLOPT_NOSIGNAL, 1);
     curl_easy_setopt(m_easyHandle, CURLOPT_READFUNCTION, NULL);
     curl_easy_setopt(m_easyHandle, CURLOPT_WRITEFUNCTION, onWriteData);
     curl_easy_setopt(m_easyHandle, CURLOPT_HEADERFUNCTION, onHeaderData);
     curl_easy_setopt(m_easyHandle, CURLOPT_WRITEDATA, (void*)this);
+
+    m_callback = callback;
 }
 
 HTTPRequest::~HTTPRequest()
@@ -31,13 +34,11 @@ size_t HTTPRequest::onWriteData(void* buffer, size_t size, size_t nmemb, void *l
     HTTPRequest* request = static_cast<HTTPRequest*>(lpVoid);
     request->append(static_cast<char*>(buffer), size * nmemb);
 
-    std::cout << "on Write Data\n" ;
     return size * nmemb;
 }
 
 size_t HTTPRequest::onHeaderData(void *buffer, size_t size, size_t nmemb, void *lpVoid)
 {
-    std::cout << "on Header Data\n" ;
     return size * nmemb;
 }
 
@@ -79,17 +80,15 @@ std::string HTTPRequest::receive()
         return this->m_recv;
     }
 
-
     return std::string();
 }
 
 void HTTPRequest::finished(long code)
 {
-    this->getResult();
+    m_callback(this);
 
     curl_easy_cleanup(m_easyHandle);
 }
-
 
 HTTPManager::HTTPManager()
    : m_multiHandle(NULL)
@@ -137,38 +136,37 @@ HTTPManager::~HTTPManager()
 
 HTTPRequest* HTTPManager::searchRequest(CURL* handle)
 {
+    lock();
     std::vector<HTTPRequest*>::iterator it = m_request.begin();
     for(; it != m_request.end(); ++it)
     {
         if ((*it)->checkHandle(handle))
         {
+            unlock();
             return *it;
         }
     }
 
+    unlock();
     return NULL;
 }
 
 void HTTPManager::removeRequest(HTTPRequest* req)
 {
-    lock();
-
     curl_multi_remove_handle(m_multiHandle, req->getHandle());
+    lock();
     m_request.erase(std::remove(m_request.begin(), m_request.end(), req), m_request.end());
-    std::cout << "left vector : " << m_request.size() << "\n";
-
     unlock();
+    std::cout << "left vector : " << m_request.size() << "\n";
 }
 
 void HTTPManager::addRequest(HTTPRequest *req)
 {
-    lock();
-
     curl_multi_add_handle(m_multiHandle, req->getHandle());
+    lock();
     m_request.push_back(req);
-    set();
-
     unlock();
+    set();
 }
 
 
@@ -180,14 +178,21 @@ void* HTTPManager::threadRun(void* param)
 
 void HTTPManager::run()
 {
+    curl_global_init(CURL_GLOBAL_ALL);
     while (m_running)
     {
         int still_running = 0;
         int msgs_left = 0;
 
+        lock();
         if (m_request.empty())
         {
+            unlock();
             wait();
+        }
+        else
+        {
+            unlock();
         }
 
         curl_multi_perform(m_multiHandle, &still_running);
@@ -304,6 +309,7 @@ void HTTPManager::run()
         } while(still_running);
         /* See how the transfers went */
     }
+    curl_global_cleanup();
 }
 
 void HTTPManager::wait()

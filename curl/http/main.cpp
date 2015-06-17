@@ -1,37 +1,46 @@
 #include <iostream>
+#include <pthread.h>
 #include "http.h"
+    
+HTTPManager *manager;
+
+void http_complete(HTTPRequest* request)
+{
+    request->getResult();
+}
+
+void* pthread_run(void* param)
+{
+    std::cout << static_cast<const char*>(param) << "\n" ;
+    HTTPRequest *req = new HTTPRequest((const char*)param, std::tr1::bind(http_complete, std::tr1::placeholders::_1));
+    manager->addRequest(req);
+
+    sleep(5);
+}
 
 int main()
 {
-    HTTPManager manager;
-    HTTPRequest req1("http://localhost:9090");
-    HTTPRequest req2("http://localhost:9091");
-    HTTPRequest req3("http://localhost:9092");
-    HTTPRequest req4("http://localhost:9093");
+    manager = new HTTPManager;
+    const char* req[] = {
+        "http://localhost:9090",
+        "http://localhost:9091",
+        "http://localhost:9092",
+        "http://localhost:9093",
+        "http://localhost:9094",
+    };
 
-    while (1)
+    pthread_t tid[5];
+    for(int i = 0; i < 5; i++)
     {
-
-    manager.addRequest(&req1);
-    //sleep(4);
-    //manager.addRequest(&req2);
-    //sleep(5);
-    //manager.addRequest(&req3);
-    //sleep(9);
-    //manager.addRequest(&req4);
-    //sleep(4);
-    //
- 
-    sleep(5);
-    manager.removeRequest(&req1);
-    manager.interrupt();
-    sleep(1);
+        pthread_create(tid+i, NULL, pthread_run, const_cast<char*>(req[i]));
     }
 
     while (1)
     {
         sleep(5);
     }
+
+    delete manager;
 
     return 0;
 }

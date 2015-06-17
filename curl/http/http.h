@@ -3,14 +3,15 @@
 
 #include <string>
 #include <vector>
-#include <curl/curl.h>
+#include <tr1/functional>
 
+#include <curl/curl.h>
 #include <pthread.h>
 
 class HTTPRequest
 {
     public:
-        HTTPRequest(std::string uri);
+        HTTPRequest(std::string uri, std::tr1::function<void(HTTPRequest*)> notify = NULL);
         ~HTTPRequest();
 
         /*async*/
@@ -42,6 +43,8 @@ class HTTPRequest
         
         CURL* m_easyHandle;
         std::string m_recv;
+
+        std::tr1::function<void(HTTPRequest*)> m_callback;
 };
 
 
