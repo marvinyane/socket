@@ -12,7 +12,7 @@ void http_complete(HTTPRequest* request)
 void* pthread_run(void* param)
 {
     std::cout << static_cast<const char*>(param) << "\n" ;
-    HTTPRequest *req = new HTTPRequest((const char*)param, std::tr1::bind(http_complete, std::tr1::placeholders::_1));
+    HTTPRequest *req = new HTTPRequest((const char*)param, std::bind(http_complete, std::placeholders::_1));
     manager->addRequest(req);
 
     sleep(5);

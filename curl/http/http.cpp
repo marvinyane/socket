@@ -5,7 +5,7 @@
 
 #include "http.h"
 
-HTTPRequest::HTTPRequest(std::string uri, std::tr1::function<void(HTTPRequest*)> callback)
+HTTPRequest::HTTPRequest(std::string uri, std::function<void(HTTPRequest*)> callback)
 {
     m_easyHandle = curl_easy_init();
 
