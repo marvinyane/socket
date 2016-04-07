@@ -7,6 +7,11 @@
 #define NETLINK_TEST 17
 #define MSG_LEN 100
 
+struct msg_to_kernel
+{
+    struct nlmsghdr hdr;
+    char data[MSG_LEN];
+};
 struct u_packet_info
 {
     struct nlmsghdr hdr;
@@ -15,34 +20,34 @@ struct u_packet_info
 
 int main(int argc, char* argv[]) 
 {
-    int ret = 0;
-    char *data = "hello world";
-
+    //初始化
     struct sockaddr_nl local;
-
+    struct sockaddr_nl kpeer;
+    int skfd, ret, kpeerlen = sizeof(struct sockaddr_nl);
     struct nlmsghdr *message;
     struct u_packet_info info;
     char *retval;
-
-    // TODO:
     message = (struct nlmsghdr *)malloc(1);
 
-    int skfd = socket(PF_NETLINK, SOCK_RAW, NETLINK_TEST);
-
+    skfd = socket(PF_NETLINK, SOCK_RAW, NETLINK_TEST);
     if(skfd < 0){
         printf("can not create a netlink socket\n");
         return -1;
     }
-
     memset(&local, 0, sizeof(local));
     local.nl_family = AF_NETLINK;
-    local.nl_pid = 101;
-    local.nl_groups = 0;
-
-    if(connect(skfd, (struct sockaddr *)&local, sizeof(local)) != 0){
-        printf("bind() error\n");
+    local.nl_groups = 0x21;
+    if(bind(skfd, (struct sockaddr *)&local, sizeof(local)) != 0){
+        perror("bind() error\n");
         return -1;
     }
+
+
+#if 0
+    memset(&kpeer, 0, sizeof(kpeer));
+    kpeer.nl_family = AF_NETLINK;
+    kpeer.nl_pid = 0;
+    kpeer.nl_groups = 0;
 
     memset(message, '\0', sizeof(struct nlmsghdr));
     message->nlmsg_len = NLMSG_SPACE(strlen(data));
@@ -54,23 +59,22 @@ int main(int argc, char* argv[])
     retval = memcpy(NLMSG_DATA(message), data, strlen(data));
 
     printf("message sendto kernel are:%s, len:%d\n", (char *)NLMSG_DATA(message), message->nlmsg_len);
-    ret = send(skfd, message, message->nlmsg_len, 0);
+    ret = sendto(skfd, message, message->nlmsg_len, 0,(struct sockaddr *)&kpeer, sizeof(kpeer));
     if(!ret){
         perror("send pid:");
         exit(-1);
     }
-
-#if 0
+#endif
     //接受内核态确认信息
-    ret = recvfrom(skfd, &info, sizeof(struct u_packet_info),0, (struct sockaddr*)&kpeer, &kpeerlen);
+    ret = recv(skfd, &info, sizeof(struct u_packet_info),0);
     if(!ret){
-        perror("recv form kerner:");
+        perror("recv error:");
         exit(-1);
     }
 
-    printf("message receive from kernel:%s\n",(char *)info.msg);
+    printf("message receive :%s\n",(char *)info.msg);
     //内核和用户进行通信
-#endif
+
     close(skfd);
     return 0;
 }
