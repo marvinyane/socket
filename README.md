@@ -1,4 +1,4 @@
 socket
 ======
 
-socket program parctice
+socket program practice
