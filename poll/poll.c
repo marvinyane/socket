@@ -2,17 +2,23 @@
 #include<unistd.h>
 #include<stdlib.h>
 #include<errno.h>
+#include <strings.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 
 #include <poll.h>
 
 int create_socket(short port)
 {
     int fd; 
-    if ((fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+    if ((fd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
         return -1;
 
-    struct sockaddr_in server_addr;
-    bzero(&server_addr, sizeof(server_addr));
+    struct sockaddr_in servaddr;
+    bzero(&servaddr, sizeof(servaddr));
 
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(port);
@@ -24,6 +30,8 @@ int create_socket(short port)
         close(fd);
         return -1;
     }
+    
+    bind(fd, (struct sockaddr*)&servaddr, sizeof(servaddr));
 
     return fd;
 }
@@ -34,12 +42,9 @@ int main(void)
     if (fd < 0)
     {
         printf("socket create error.\n");
-        return 0
+        return 0;
     }
 
-    bind(fd, (struct sockaddr*)&server_addr, sizeof(server_addr));
-
-    // max 64 connections
     listen(fd, 64);
 
     struct pollfd *fds = malloc(65 * sizeof(struct pollfd));
