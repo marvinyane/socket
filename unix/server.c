@@ -13,19 +13,24 @@ int main()
     int fd; 
     if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
         return -1;
+    
+    if (fd < 0)
+    {
+        perror("socket create error:");
+        return 0;
+    }
 
     struct sockaddr_un addr;
     bzero(&addr, sizeof(addr));
 
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, "my-socket", sizeof(addr.sun_path)-1);
-    if (fd < 0)
-    {
-        printf("socket create error.\n");
-        return 0;
-    }
 
-    bind(fd, (struct sockaddr*)&addr, sizeof(addr));
+
+    if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+    {
+        perror("bind  error:");
+    }
 
     // max 64 connections
     listen(fd, 64);
@@ -37,7 +42,9 @@ int main()
     fds[0].fd = fd;
     fds[0].events = POLLIN;
 
-    while (1)
+    int end = 1;
+
+    while (end)
     {
         int ret = poll(fds, poll_cnt, -1);
 
@@ -65,11 +72,27 @@ int main()
         {
             if (fds[i].revents & POLLIN)
             {
-                // read....
+                char buf[1024];
+                bzero(buf, sizeof buf);
+                int ret = read(fds[i].fd, buf, sizeof(buf));
+
+                if (ret == 0)
+                {
+                    close(fds[i].fd);
+                    end = 0;
+                }
+                else 
+                {
+                    printf("receive buf : %s \n", buf);
+                    write(fds[i].fd, "world", 6);
+                }
             }
         }
-    }
 
+    }
+        
+    close(fd);
+    unlink("my-socket");
     
     return 0;
 }

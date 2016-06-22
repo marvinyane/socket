@@ -27,11 +27,11 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    /*if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))*/
-    /*{*/
-        /*printf("Client bind port failed! \n");*/
-        /*exit(1);*/
-    /*}*/
+    if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)) < 0)
+    {
+        perror("Client bind port failed:");
+        exit(1);
+    }
 
     struct sockaddr_un server_addr;
     bzero(&server_addr, sizeof(server_addr));
@@ -44,12 +44,19 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    while (1)
-    {
-        send(client_socket, "hello", 5, 0);
 
-        sleep(10);
+    {
+        write(client_socket, "hello", 5);
+
+        char buf[1024];
+        bzero(buf, sizeof buf);
+        read(client_socket, buf, sizeof buf);
+        printf("client recv: %s \n", buf);
+
     }
+
+    close(client_socket);
+    unlink(name);
 
     return 0;
 }
