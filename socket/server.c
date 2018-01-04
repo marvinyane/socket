@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define HELLO_WORLD_SERVER_PORT 6666
 #define LENGTH_OF_LISTEN_QUEUE  20
 #define BUFFER_SIZE 1024
 #define FILE_NAME_MAX_SIZE  512
@@ -31,7 +30,7 @@ int main(int argc, char** argv)
 
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)))
     {
-        printf("Server bind port : %d failed! \n", HELLO_WORLD_SERVER_PORT);
+        printf("Server bind port : %d failed! \n", server_addr.sin_port);
         exit(1);
     }
 
@@ -62,10 +61,11 @@ int main(int argc, char** argv)
 
         while (1)
         {
-            printf("send out!\n");
-            send(new_server_socket, "hello", 6, 0);
-            sleep(1);
-#if 0
+            char buffer[1024];
+            bzero(buffer, sizeof(buffer));
+            scanf("send:%s", buffer);
+            send(new_server_socket, buffer, strlen(buffer), 0);
+#if 1
             length = recv(new_server_socket, buffer, BUFFER_SIZE, 0);
 
             if (length < 0)
@@ -79,9 +79,8 @@ int main(int argc, char** argv)
                 printf("socket disconnected!\n");
                 break;
             }
-            printf("received data: %s \n", buffer);
 
-            send(new_server_socket, buffer, length, 0);
+            printf("received data: %s \n", buffer);
 #endif
         }
 

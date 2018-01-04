@@ -15,15 +15,15 @@ int main(int argc, char** argv)
 {
     if (argc != 3)
     {
-        printf("usage : ./%s port! \n", argv[0]);
+        printf("usage : ./%s ip port! \n", argv[0]);
         exit(1);
     }
 
-    struct sockaddr_in client_addr;
-    bzero(&client_addr, sizeof(client_addr));
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_addr.s_addr = htons(INADDR_ANY);
-    client_addr.sin_port = htons(0);
+    /*struct sockaddr_in client_addr;*/
+    /*bzero(&client_addr, sizeof(client_addr));*/
+    /*client_addr.sin_family = AF_INET;*/
+    /*client_addr.sin_addr.s_addr = htons(INADDR_ANY);*/
+    /*client_addr.sin_port = htons(0);*/
 
     while (1)
     {
@@ -34,11 +34,11 @@ int main(int argc, char** argv)
             exit(1);
         }
 
-        if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))
-        {
-            printf("Client bind port failed! \n");
-            exit(1);
-        }
+        /*if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))*/
+        /*{*/
+            /*printf("Client bind port failed! \n");*/
+            /*exit(1);*/
+        /*}*/
 
         struct sockaddr_in server_addr;
         bzero(&server_addr, sizeof(server_addr));
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
         if (inet_aton(argv[1], &server_addr.sin_addr) == 0)
         {
             printf("Server Ip address Error!\n");
-            exit(1);
+            return 0;
         }
 
         server_addr.sin_port = htons(atoi(argv[2]));
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
         if (connect(client_socket, (struct sockaddr*)&server_addr, server_addr_length) < 0)
         {
             printf("connect failed! \n");
-            exit(1);
+            return 0;
         }
 
         printf("connected!\n");
